@@ -20,7 +20,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --check || echo "warning: formatting issues found"
+        run: "cargo fmt --check || echo 'warning: formatting issues found'"
 
       - name: Clippy (all features)
         run: cargo clippy --all-targets --all-features --locked
