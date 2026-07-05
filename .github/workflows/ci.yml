@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy (all features)
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+      - name: Clippy (no default features)
+        run: cargo clippy --all-targets --no-default-features --locked -- -D warnings
+
+      - name: Clippy (bundled)
+        run: cargo clippy --all-targets --no-default-features --features basic,emoji --locked -- -D warnings
+
+      - name: Build
+        run: cargo build --verbose --locked
+
+      - name: Test
+        run: cargo test --verbose --locked
+
+  check-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check wasm32
+        run: cargo check --target wasm32-unknown-unknown --locked
+
+      - name: Check wasm32 no-default-features
+        run: cargo check --no-default-features --target wasm32-unknown-unknown --locked
+
+  check-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Add Android target
+        run: rustup target add aarch64-linux-android
+
+      - name: Check Android
+        run: cargo check --target aarch64-linux-android --locked
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build docs
+        run: cargo doc --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
