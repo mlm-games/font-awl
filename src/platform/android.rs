@@ -38,7 +38,7 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<(), Error
 }
 
 #[link(name = "android")]
-extern "C" {
+unsafe extern "C" {
     fn ASystemFontIterator_open() -> *mut std::ffi::c_void;
     fn ASystemFontIterator_next(it: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
     fn ASystemFontIterator_close(it: *mut std::ffi::c_void);
