@@ -65,16 +65,17 @@ pub struct Provider {
     collection: Collection,
     fallback_map: HashMap<Script, Vec<FamilyId>>,
     tried_system: bool,
+    font_data: Vec<Vec<u8>>,
 }
 
 impl FontProvider for Provider {
     fn load_bundled_fonts(&mut self) {
-        platform::register_default_fonts(&mut self.collection);
+        let data = platform::register_default_fonts(&mut self.collection);
+        self.font_data.extend(data);
     }
 
     fn load_app_fonts(&mut self, bytes: &[u8], info: Option<FontInfoOverride<'_>>) {
-        let blob: Blob<u8> = bytes.to_vec().into();
-        self.collection.register_fonts(blob, info);
+        self.register_fonts(bytes, info);
     }
 
     fn load_system_fonts_best_effort(&mut self) -> Result<(), Error> {
@@ -82,7 +83,9 @@ impl FontProvider for Provider {
             return Ok(());
         }
         self.tried_system = true;
-        platform::load_system_fonts(&mut self.collection)
+        let data = platform::load_system_fonts(&mut self.collection)?;
+        self.font_data.extend(data);
+        Ok(())
     }
 
     fn fallback_for_script(&self, script: Script) -> Vec<FontId> {
@@ -106,11 +109,13 @@ impl Provider {
             collection,
             fallback_map: HashMap::new(),
             tried_system: false,
+            font_data: Vec::new(),
         }
     }
 
     /// Register raw font data.
     pub fn register_fonts(&mut self, data: &[u8], info: Option<FontInfoOverride<'_>>) {
+        self.font_data.push(data.to_vec());
         let blob: Blob<u8> = data.to_vec().into();
         self.collection.register_fonts(blob, info);
     }
@@ -142,7 +147,9 @@ impl Provider {
             return Ok(());
         }
         self.tried_system = true;
-        platform::load_web_fonts(&mut self.collection).await
+        let data = platform::load_web_fonts(&mut self.collection).await?;
+        self.font_data.extend(data);
+        Ok(())
     }
 
     /// Reference to the underlying fontique collection.
@@ -153,6 +160,11 @@ impl Provider {
     /// Mutable reference to the underlying fontique collection.
     pub fn collection_mut(&mut self) -> &mut Collection {
         &mut self.collection
+    }
+
+    /// Drain all tracked font data bytes for use with an external font system
+    pub fn drain_font_data(&mut self) -> Vec<Vec<u8>> {
+        std::mem::take(&mut self.font_data)
     }
 
     /// Build a parley `FontContext` from this provider's collection.
@@ -237,12 +249,7 @@ mod tests {
         {
             let mut font_cx = provider.new_parley_context();
             let mut layout_cx = parley::LayoutContext::<[u8; 4]>::new();
-            let mut builder = layout_cx.ranged_builder(
-                &mut font_cx,
-                "Hello",
-                16.0,
-                true,
-            );
+            let mut builder = layout_cx.ranged_builder(&mut font_cx, "Hello", 16.0, true);
             builder.push_default(parley::style::StyleProperty::FontSize(16.0));
             let mut layout = builder.build("Hello");
             layout.break_all_lines(None);
@@ -276,12 +283,7 @@ mod tests {
         {
             let mut font_cx = provider.new_parley_context();
             let mut layout_cx = parley::LayoutContext::<[u8; 4]>::new();
-            let mut builder = layout_cx.ranged_builder(
-                &mut font_cx,
-                "A",
-                16.0,
-                true,
-            );
+            let mut builder = layout_cx.ranged_builder(&mut font_cx, "A", 16.0, true);
             builder.push_default(parley::style::StyleProperty::FontSize(16.0));
             let mut layout = builder.build("A");
             layout.break_all_lines(None);

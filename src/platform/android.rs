@@ -4,7 +4,8 @@ use fontique::{Blob, Collection};
 
 use crate::Error;
 
-pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<(), Error> {
+pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<Vec<Vec<u8>>, Error> {
+    let mut font_data = Vec::new();
     let iter = unsafe { ASystemFontIterator_open() };
     if iter.is_null() {
         return Err(Error::Android("ASystemFontIterator_open returned null".into()));
@@ -23,10 +24,11 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<(), Error
                 .map_err(|_| Error::Android("font path is not valid UTF-8".into()))?;
 
             if !path.is_empty() {
-                let data = std::fs::read(path)
+                let bytes = std::fs::read(path)
                     .map_err(|e| Error::platform("reading font file", e))?;
-                let blob: Blob<u8> = data.into();
+                let blob: Blob<u8> = bytes.clone().into();
                 collection.register_fonts(blob, None);
+                font_data.push(bytes);
             }
         }
 
@@ -34,7 +36,7 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<(), Error
     }
 
     unsafe { ASystemFontIterator_close(iter) };
-    Ok(())
+    Ok(font_data)
 }
 
 #[link(name = "android")]

@@ -5,7 +5,8 @@ use wasm_bindgen_futures::JsFuture;
 
 use crate::Error;
 
-pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<(), Error> {
+pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<Vec<u8>>, Error> {
+    let mut font_data = Vec::new();
     let window = web_sys::window().ok_or_else(|| {
         Error::NotSupported("no window global on WASM")
     })?;
@@ -89,9 +90,10 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<(), 
             axes: None,
         };
 
-        let blob: Blob<u8> = data.into();
+        let blob: Blob<u8> = data.clone().into();
         collection.register_fonts(blob, Some(info));
+        font_data.push(data);
     }
 
-    Ok(())
+    Ok(font_data)
 }
