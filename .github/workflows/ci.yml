@@ -76,5 +76,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig-dev
+
       - name: Build docs
         run: cargo doc --no-deps --locked
