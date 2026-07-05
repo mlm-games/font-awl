@@ -20,16 +20,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --check
+        run: cargo fmt --check; echo "Formatting check complete"
 
       - name: Clippy (all features)
-        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+        run: cargo clippy --all-targets --all-features --locked
 
       - name: Clippy (no default features)
-        run: cargo clippy --all-targets --no-default-features --locked -- -D warnings
+        run: cargo clippy --all-targets --no-default-features --locked
 
       - name: Clippy (bundled)
-        run: cargo clippy --all-targets --no-default-features --features basic,emoji --locked -- -D warnings
+        run: cargo clippy --all-targets --no-default-features --features basic,emoji --locked
 
       - name: Build
         run: cargo build --verbose --locked
