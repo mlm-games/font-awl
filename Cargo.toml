@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Cross-platform font provider for Rust, wrapping fontique + parley"
-repository = "https://github.com/ymsr/font-awl"
+repository = "https://github.com/mlm-games/font-awl"
 readme = "README.md"
 
 [features]
