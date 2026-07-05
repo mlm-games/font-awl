@@ -1,0 +1,33 @@
+[package]
+name = "font-awl"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Cross-platform font provider for Rust, wrapping fontique + parley"
+repository = "https://github.com/ymsr/font-awl"
+readme = "README.md"
+
+[features]
+default = ["parley", "system"]
+parley = ["dep:parley"]
+system = []
+basic = []
+emoji = []
+cjk = []
+all-noto = ["basic", "emoji", "cjk"]
+
+[dependencies]
+fontique = "0.11"
+parley = { version = "0.11", optional = true }
+cfg-if = "1"
+thiserror = "2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window"] }
+
+[package.metadata.docs.rs]
+features = ["parley", "basic", "emoji", "system"]
+rustdoc-args = ["--cfg", "docsrs"]
