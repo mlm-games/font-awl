@@ -9,6 +9,8 @@ pub(crate) fn register_defaults(_col: &mut Collection) -> Vec<Vec<u8>> {
     out.extend(register_emoji(_col));
     #[cfg(feature = "cjk")]
     out.extend(register_cjk(_col));
+    #[cfg(feature = "monospace")]
+    out.extend(register_monospace(_col));
     out
 }
 
@@ -65,6 +67,23 @@ fn register_cjk(col: &mut Collection) -> Vec<Vec<u8>> {
         let raw = include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoSansCJK-Regular.ttc"
+        ));
+        let bytes = raw.to_vec();
+        let blob: fontique::Blob<u8> = bytes.clone().into();
+        col.register_fonts(blob, None);
+        out.push(bytes);
+    }
+    out
+}
+
+#[cfg(feature = "monospace")]
+fn register_monospace(col: &mut Collection) -> Vec<Vec<u8>> {
+    let mut out = Vec::new();
+    #[cfg(font_awl_mono)]
+    {
+        let raw = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/fonts/JetBrainsMono-Regular.ttf"
         ));
         let bytes = raw.to_vec();
         let blob: fontique::Blob<u8> = bytes.clone().into();
