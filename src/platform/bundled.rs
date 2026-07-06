@@ -25,7 +25,10 @@ fn register_basic(col: &mut Collection) -> Vec<Vec<u8>> {
         ));
         let bytes = raw.to_vec();
         let blob: fontique::Blob<u8> = bytes.clone().into();
-        col.register_fonts(blob, None);
+        let families = col.register_fonts(blob, None);
+        for (fid, _) in &families {
+            col.set_generic_families(fontique::GenericFamily::SansSerif, [*fid].into_iter());
+        }
         out.push(bytes);
     }
     #[cfg(font_awl_symbols2)]
@@ -53,7 +56,10 @@ fn register_emoji(col: &mut Collection) -> Vec<Vec<u8>> {
         ));
         let bytes = raw.to_vec();
         let blob: fontique::Blob<u8> = bytes.clone().into();
-        col.register_fonts(blob, None);
+        let families = col.register_fonts(blob, None);
+        for (fid, _) in &families {
+            col.set_generic_families(fontique::GenericFamily::Emoji, [*fid].into_iter());
+        }
         out.push(bytes);
     }
     out
@@ -70,7 +76,10 @@ fn register_cjk(col: &mut Collection) -> Vec<Vec<u8>> {
         ));
         let bytes = raw.to_vec();
         let blob: fontique::Blob<u8> = bytes.clone().into();
-        col.register_fonts(blob, None);
+        let families = col.register_fonts(blob, None);
+        for (fid, _) in &families {
+            col.set_generic_families(fontique::GenericFamily::SansSerif, [*fid].into_iter());
+        }
         out.push(bytes);
     }
     out
@@ -87,7 +96,10 @@ fn register_monospace(col: &mut Collection) -> Vec<Vec<u8>> {
         ));
         let bytes = raw.to_vec();
         let blob: fontique::Blob<u8> = bytes.clone().into();
-        col.register_fonts(blob, None);
+        let families = col.register_fonts(blob, None);
+        for (fid, _) in &families {
+            col.set_generic_families(fontique::GenericFamily::Monospace, [*fid].into_iter());
+        }
         out.push(bytes);
     }
     out
