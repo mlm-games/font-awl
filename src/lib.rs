@@ -7,7 +7,7 @@ pub use fontique;
 use std::collections::HashMap;
 
 use fontique::{
-    Blob, Collection, CollectionOptions, FamilyId, FontInfoOverride, Script, SourceCache,
+    Blob, Collection, CollectionOptions, FamilyId, FontInfoOverride, Script,
 };
 
 #[cfg(feature = "parley")]
@@ -64,8 +64,8 @@ pub trait FontProvider {
 pub struct Provider {
     collection: Collection,
     fallback_map: HashMap<Script, Vec<FamilyId>>,
-    tried_system: bool,
-    font_data: Vec<Vec<u8>>,
+    system_load_attempted: bool,
+    font_data: Vec<Blob<u8>>,
 }
 
 impl FontProvider for Provider {
@@ -79,10 +79,10 @@ impl FontProvider for Provider {
     }
 
     fn load_system_fonts_best_effort(&mut self) -> Result<(), Error> {
-        if self.tried_system {
+        if self.system_load_attempted {
             return Ok(());
         }
-        self.tried_system = true;
+        self.system_load_attempted = true;
         let data = platform::load_system_fonts(&mut self.collection)?;
         self.font_data.extend(data);
         Ok(())
@@ -108,31 +108,28 @@ impl Provider {
         Self {
             collection,
             fallback_map: HashMap::new(),
-            tried_system: false,
+            system_load_attempted: false,
             font_data: Vec::new(),
         }
     }
 
     /// Register raw font data.
     pub fn register_fonts(&mut self, data: &[u8], info: Option<FontInfoOverride<'_>>) {
-        self.font_data.push(data.to_vec());
         let blob: Blob<u8> = data.to_vec().into();
+        self.font_data.push(blob.clone());
         self.collection.register_fonts(blob, info);
     }
 
     /// Set a per-script fallback chain.
     ///
-    /// `families` is an ordered list of font family names (or generic families)
-    /// to try when text in `script` is encountered.
-    pub fn set_fallback<S>(&mut self, script: Script, families: Vec<FamilyId>) {
+    /// `families` is an ordered list of font family IDs to try when text
+    /// in `script` is encountered.
+    pub fn set_fallback(&mut self, script: Script, families: Vec<FamilyId>) {
         self.fallback_map.insert(script, families);
     }
 
-    /// Rebuild per-script fallback cache from registered fonts.
-    ///
-    /// Should be called after registering fonts that may be the best choice
-    /// for a particular script.
-    pub fn refresh_fallback_cache(&mut self) {
+    /// Clear the per-script fallback cache.
+    pub fn clear_fallback_cache(&mut self) {
         self.fallback_map.clear();
     }
 
@@ -143,10 +140,10 @@ impl Provider {
     /// API is unavailable in the current browser.
     #[cfg(target_arch = "wasm32")]
     pub async fn load_web_fonts(&mut self) -> Result<(), Error> {
-        if self.tried_system {
+        if self.system_load_attempted {
             return Ok(());
         }
-        self.tried_system = true;
+        self.system_load_attempted = true;
         let data = platform::load_web_fonts(&mut self.collection).await?;
         self.font_data.extend(data);
         Ok(())
@@ -162,8 +159,8 @@ impl Provider {
         &mut self.collection
     }
 
-    /// Drain all tracked font data bytes for use with an external font system
-    pub fn drain_font_data(&mut self) -> Vec<Vec<u8>> {
+    /// Drain all tracked font data blobs for use with an external font system.
+    pub fn drain_font_data(&mut self) -> Vec<Blob<u8>> {
         std::mem::take(&mut self.font_data)
     }
 
@@ -175,7 +172,7 @@ impl Provider {
     pub fn new_parley_context(&self) -> parley::FontContext {
         parley::FontContext {
             collection: self.collection.clone(),
-            source_cache: SourceCache::default(),
+            source_cache: fontique::SourceCache::default(),
         }
     }
 }
@@ -189,7 +186,7 @@ impl Default for Provider {
 impl std::fmt::Debug for Provider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Provider")
-            .field("tried_system", &self.tried_system)
+            .field("system_load_attempted", &self.system_load_attempted)
             .finish_non_exhaustive()
     }
 }
@@ -201,7 +198,7 @@ mod tests {
     #[test]
     fn provider_constructs() {
         let provider = Provider::new();
-        assert!(!provider.tried_system);
+        assert!(!provider.system_load_attempted);
     }
 
     #[test]
@@ -218,7 +215,7 @@ mod tests {
     #[test]
     fn default_is_noop() {
         let provider = Provider::default();
-        assert!(!provider.tried_system);
+        assert!(!provider.system_load_attempted);
     }
 
     #[test]
@@ -270,7 +267,6 @@ mod tests {
         #[cfg(any(target_arch = "wasm32", target_os = "android"))]
         {
             let _ = provider;
-            // No system fonts available, test is a no-op
         }
     }
 

@@ -1,6 +1,6 @@
-use fontique::Collection;
+use fontique::{Blob, Collection};
 
-pub(crate) fn register_defaults(_col: &mut Collection) -> Vec<Vec<u8>> {
+pub(crate) fn register_defaults(_col: &mut Collection) -> Vec<Blob<u8>> {
     #[allow(unused_mut)]
     let mut out = Vec::new();
     #[cfg(feature = "basic")]
@@ -15,7 +15,8 @@ pub(crate) fn register_defaults(_col: &mut Collection) -> Vec<Vec<u8>> {
 }
 
 #[cfg(feature = "basic")]
-fn register_basic(col: &mut Collection) -> Vec<Vec<u8>> {
+#[allow(unused_variables, unused_mut)]
+fn register_basic(col: &mut Collection) -> Vec<Blob<u8>> {
     let mut out = Vec::new();
     #[cfg(font_awl_opensans)]
     {
@@ -23,13 +24,13 @@ fn register_basic(col: &mut Collection) -> Vec<Vec<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/OpenSans-Regular.ttf"
         ));
-        let bytes = raw.to_vec();
-        let blob: fontique::Blob<u8> = bytes.clone().into();
-        let families = col.register_fonts(blob, None);
-        for (fid, _) in &families {
-            col.set_generic_families(fontique::GenericFamily::SansSerif, [*fid].into_iter());
-        }
-        out.push(bytes);
+        let blob: Blob<u8> = raw.to_vec().into();
+        let families = col.register_fonts(blob.clone(), None);
+        col.set_generic_families(
+            fontique::GenericFamily::SansSerif,
+            families.iter().map(|(fid, _)| *fid),
+        );
+        out.push(blob);
     }
     #[cfg(font_awl_symbols2)]
     {
@@ -37,16 +38,16 @@ fn register_basic(col: &mut Collection) -> Vec<Vec<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoSansSymbols2-Regular.ttf"
         ));
-        let bytes = raw.to_vec();
-        let blob: fontique::Blob<u8> = bytes.clone().into();
-        col.register_fonts(blob, None);
-        out.push(bytes);
+        let blob: Blob<u8> = raw.to_vec().into();
+        col.register_fonts(blob.clone(), None);
+        out.push(blob);
     }
     out
 }
 
 #[cfg(feature = "emoji")]
-fn register_emoji(col: &mut Collection) -> Vec<Vec<u8>> {
+#[allow(unused_variables, unused_mut)]
+fn register_emoji(col: &mut Collection) -> Vec<Blob<u8>> {
     let mut out = Vec::new();
     #[cfg(font_awl_emoji)]
     {
@@ -54,19 +55,20 @@ fn register_emoji(col: &mut Collection) -> Vec<Vec<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoColorEmoji-Regular.ttf"
         ));
-        let bytes = raw.to_vec();
-        let blob: fontique::Blob<u8> = bytes.clone().into();
-        let families = col.register_fonts(blob, None);
-        for (fid, _) in &families {
-            col.set_generic_families(fontique::GenericFamily::Emoji, [*fid].into_iter());
-        }
-        out.push(bytes);
+        let blob: Blob<u8> = raw.to_vec().into();
+        let families = col.register_fonts(blob.clone(), None);
+        col.set_generic_families(
+            fontique::GenericFamily::Emoji,
+            families.iter().map(|(fid, _)| *fid),
+        );
+        out.push(blob);
     }
     out
 }
 
 #[cfg(feature = "cjk")]
-fn register_cjk(col: &mut Collection) -> Vec<Vec<u8>> {
+#[allow(unused_variables, unused_mut)]
+fn register_cjk(col: &mut Collection) -> Vec<Blob<u8>> {
     let mut out = Vec::new();
     #[cfg(font_awl_cjk)]
     {
@@ -74,19 +76,20 @@ fn register_cjk(col: &mut Collection) -> Vec<Vec<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoSansCJK-Regular.ttc"
         ));
-        let bytes = raw.to_vec();
-        let blob: fontique::Blob<u8> = bytes.clone().into();
-        let families = col.register_fonts(blob, None);
-        for (fid, _) in &families {
-            col.set_generic_families(fontique::GenericFamily::SansSerif, [*fid].into_iter());
-        }
-        out.push(bytes);
+        let blob: Blob<u8> = raw.to_vec().into();
+        let families = col.register_fonts(blob.clone(), None);
+        col.set_generic_families(
+            fontique::GenericFamily::SansSerif,
+            families.iter().map(|(fid, _)| *fid),
+        );
+        out.push(blob);
     }
     out
 }
 
 #[cfg(feature = "monospace")]
-fn register_monospace(col: &mut Collection) -> Vec<Vec<u8>> {
+#[allow(unused_variables, unused_mut)]
+fn register_monospace(col: &mut Collection) -> Vec<Blob<u8>> {
     let mut out = Vec::new();
     #[cfg(font_awl_mono)]
     {
@@ -94,13 +97,13 @@ fn register_monospace(col: &mut Collection) -> Vec<Vec<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/JetBrainsMono-Regular.ttf"
         ));
-        let bytes = raw.to_vec();
-        let blob: fontique::Blob<u8> = bytes.clone().into();
-        let families = col.register_fonts(blob, None);
-        for (fid, _) in &families {
-            col.set_generic_families(fontique::GenericFamily::Monospace, [*fid].into_iter());
-        }
-        out.push(bytes);
+        let blob: Blob<u8> = raw.to_vec().into();
+        let families = col.register_fonts(blob.clone(), None);
+        col.set_generic_families(
+            fontique::GenericFamily::Monospace,
+            families.iter().map(|(fid, _)| *fid),
+        );
+        out.push(blob);
     }
     out
 }

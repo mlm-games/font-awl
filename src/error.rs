@@ -1,5 +1,3 @@
-use std::error::Error as StdError;
-
 /// Font loading operation error.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
@@ -23,19 +21,6 @@ pub enum Error {
         context: &'static str,
         /// The underlying error.
         #[source]
-        source: Box<dyn StdError + Send + Sync>,
+        source: Box<dyn std::error::Error + Send + Sync>,
     },
-}
-
-impl Error {
-    #[cfg(target_os = "android")]
-    pub(crate) fn platform<E>(context: &'static str, err: E) -> Self
-    where
-        E: StdError + Send + Sync + 'static,
-    {
-        Self::Platform {
-            context,
-            source: Box::new(err),
-        }
-    }
 }

@@ -5,36 +5,39 @@ use wasm_bindgen_futures::JsFuture;
 
 use crate::Error;
 
-pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<Vec<u8>>, Error> {
-    let mut font_data = Vec::new();
-    let window = web_sys::window().ok_or_else(|| {
-        Error::NotSupported("no window global on WASM")
-    })?;
-
-    let query_fn = Reflect::get(&window, &JsValue::from_str("queryLocalFonts"))
-        .map_err(|_| Error::Web("queryLocalFonts not available in this browser".into()))?;
-
-    if query_fn.is_undefined() || query_fn.is_null() {
-        return Err(Error::Web("queryLocalFonts not available in this browser".into()));
-    }
-
-    let promise = Reflect::apply(
-        &query_fn.dyn_into::<Function>().map_err(|_| {
-            Error::Web("queryLocalFonts is not a function".into())
-        })?,
-        &window,
-        &js_sys::Array::new(),
-    )
-    .map_err(|e| Error::Web(format!("queryLocalFonts() threw: {e:?}")))?;
-
-    let fonts_array = JsFuture::from(
+async fn call_method_and_await(
+    obj: &JsValue,
+    method_name: &str,
+) -> Result<JsValue, Error> {
+    let method = Reflect::get(obj, &JsValue::from_str(method_name))
+        .map_err(|_| Error::Web(format!("{method_name} not available")))?;
+    let promise = method
+        .dyn_into::<Function>()
+        .map_err(|_| Error::Web(format!("{method_name} is not a function")))?
+        .call0(obj)
+        .map_err(|e| Error::Web(format!("{method_name}() threw: {e:?}")))?;
+    JsFuture::from(
         promise
             .dyn_into::<Promise>()
-            .map_err(|_| Error::Web("queryLocalFonts did not return a Promise".into()))?,
+            .map_err(|_| Error::Web(format!("{method_name} did not return a Promise")))?,
     )
     .await
-    .map_err(|e| Error::Web(format!("queryLocalFonts() rejected: {e:?}")))?;
+    .map_err(|e| Error::Web(format!("{method_name}() rejected: {e:?}")))
+}
 
+pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<Blob<u8>>, Error> {
+    let mut font_data = Vec::new();
+    let window = web_sys::window()
+        .ok_or_else(|| Error::NotSupported("no window global on WASM"))?;
+
+    let query_fn = Reflect::get(&window, &JsValue::from_str("queryLocalFonts"))
+        .map_err(|_| Error::Web("queryLocalFonts not supported in this browser".into()))?;
+
+    if query_fn.is_undefined() || query_fn.is_null() {
+        return Err(Error::Web("queryLocalFonts not supported in this browser".into()));
+    }
+
+    let fonts_array = call_method_and_await(&window, "queryLocalFonts").await?;
     let fonts = js_sys::Array::from(&fonts_array);
 
     for i in 0..fonts.length() {
@@ -45,39 +48,9 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
             .and_then(|v| v.as_string())
             .unwrap_or_default();
 
-        let blob_method = Reflect::get(&font, &JsValue::from_str("blob"))
-            .map_err(|_| Error::Web("FontData has no blob() method".into()))?
-            .dyn_into::<Function>()
-            .map_err(|_| Error::Web("blob is not a function".into()))?;
+        let blob_value = call_method_and_await(&font, "blob").await?;
 
-        let blob_promise = blob_method
-            .call0(&font)
-            .map_err(|e| Error::Web(format!("blob() threw: {e:?}")))?;
-
-        let blob = JsFuture::from(
-            blob_promise
-                .dyn_into::<Promise>()
-                .map_err(|_| Error::Web("blob() did not return a Promise".into()))?,
-        )
-        .await
-        .map_err(|e| Error::Web(format!("blob() rejected: {e:?}")))?;
-
-        let ab_method = Reflect::get(&blob, &JsValue::from_str("arrayBuffer"))
-            .map_err(|_| Error::Web("Blob has no arrayBuffer() method".into()))?
-            .dyn_into::<Function>()
-            .map_err(|_| Error::Web("arrayBuffer is not a function".into()))?;
-
-        let ab_promise = ab_method
-            .call0(&blob)
-            .map_err(|e| Error::Web(format!("arrayBuffer() threw: {e:?}")))?;
-
-        let array_buffer = JsFuture::from(
-            ab_promise
-                .dyn_into::<Promise>()
-                .map_err(|_| Error::Web("arrayBuffer() did not return a Promise".into()))?,
-        )
-        .await
-        .map_err(|e| Error::Web(format!("arrayBuffer() rejected: {e:?}")))?;
+        let array_buffer = call_method_and_await(&blob_value, "arrayBuffer").await?;
 
         let uint8 = Uint8Array::new(&array_buffer);
         let data: Vec<u8> = uint8.to_vec();
@@ -90,9 +63,9 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
             axes: None,
         };
 
-        let blob: Blob<u8> = data.clone().into();
-        collection.register_fonts(blob, Some(info));
-        font_data.push(data);
+        let blob: Blob<u8> = data.into();
+        collection.register_fonts(blob.clone(), Some(info));
+        font_data.push(blob);
     }
 
     Ok(font_data)

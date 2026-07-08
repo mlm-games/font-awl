@@ -4,6 +4,14 @@ fn main() {
     println!("cargo::rustc-check-cfg=cfg(font_awl_emoji)");
     println!("cargo::rustc-check-cfg=cfg(font_awl_cjk)");
     println!("cargo::rustc-check-cfg=cfg(font_awl_mono)");
+
+    println!("cargo::rerun-if-changed=build.rs");
+    println!("cargo::rerun-if-changed=fonts/OpenSans-Regular.ttf");
+    println!("cargo::rerun-if-changed=fonts/NotoSansSymbols2-Regular.ttf");
+    println!("cargo::rerun-if-changed=fonts/NotoColorEmoji-Regular.ttf");
+    println!("cargo::rerun-if-changed=fonts/NotoSansCJK-Regular.ttc");
+    println!("cargo::rerun-if-changed=fonts/JetBrainsMono-Regular.ttf");
+
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let font_dir = std::path::Path::new(&manifest_dir).join("fonts");
 
@@ -19,11 +27,11 @@ fn main() {
     for (file, cfg_flag, feature) in &checks {
         let path = font_dir.join(file);
         if path.exists() {
-            println!("cargo:rustc-cfg={cfg_flag}");
+            println!("cargo::rustc-cfg={cfg_flag}");
         } else {
             let feat_var = format!("CARGO_FEATURE_{}", feature.to_uppercase());
             if std::env::var(&feat_var).is_ok() {
-                println!("cargo:warning=font-awl: missing '{file}' needed by '{feature}' feature");
+                println!("cargo::warning=font-awl: missing '{file}' needed by '{feature}' feature");
             }
         }
     }
