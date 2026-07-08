@@ -8,7 +8,7 @@ repository = "https://github.com/mlm-games/font-awl"
 readme = "README.md"
 
 [features]
-default = ["std", "parley", "system"]
+default = ["std", "parley", "system", "fontconfig-dlopen"]
 std = ["fontique/std", "parley?/std"]
 system = ["std", "fontique/system", "parley?/system"]
 parley = ["dep:parley"]
@@ -21,7 +21,9 @@ all-noto = ["basic", "emoji", "cjk"]
 
 [dependencies]
 fontique = { version = "0.11", default-features = false, features = ["std"] }
-parley = { version = "0.11", optional = true, default-features = false, features = ["std"] }
+parley = { version = "0.11", optional = true, default-features = false, features = [
+    "std",
+] }
 thiserror = "2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
