@@ -24,7 +24,7 @@ fn register_basic(col: &mut Collection) -> Vec<Blob<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/OpenSans-Regular.ttf"
         ));
-        let blob: Blob<u8> = raw.to_vec().into();
+        let blob: Blob<u8> = Blob::new(std::sync::Arc::new(raw.as_slice()));
         let families = col.register_fonts(blob.clone(), None);
         col.set_generic_families(
             fontique::GenericFamily::SansSerif,
@@ -38,7 +38,7 @@ fn register_basic(col: &mut Collection) -> Vec<Blob<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoSansSymbols2-Regular.ttf"
         ));
-        let blob: Blob<u8> = raw.to_vec().into();
+        let blob: Blob<u8> = Blob::new(std::sync::Arc::new(raw.as_slice()));
         col.register_fonts(blob.clone(), None);
         out.push(blob);
     }
@@ -55,7 +55,7 @@ fn register_emoji(col: &mut Collection) -> Vec<Blob<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoColorEmoji-Regular.ttf"
         ));
-        let blob: Blob<u8> = raw.to_vec().into();
+        let blob: Blob<u8> = Blob::new(std::sync::Arc::new(raw.as_slice()));
         let families = col.register_fonts(blob.clone(), None);
         col.set_generic_families(
             fontique::GenericFamily::Emoji,
@@ -76,7 +76,7 @@ fn register_cjk(col: &mut Collection) -> Vec<Blob<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/NotoSansCJK-Regular.ttc"
         ));
-        let blob: Blob<u8> = raw.to_vec().into();
+        let blob: Blob<u8> = Blob::new(std::sync::Arc::new(raw.as_slice()));
         let families = col.register_fonts(blob.clone(), None);
         col.set_generic_families(
             fontique::GenericFamily::SansSerif,
@@ -97,7 +97,7 @@ fn register_monospace(col: &mut Collection) -> Vec<Blob<u8>> {
             env!("CARGO_MANIFEST_DIR"),
             "/fonts/JetBrainsMono-Regular.ttf"
         ));
-        let blob: Blob<u8> = raw.to_vec().into();
+        let blob: Blob<u8> = Blob::new(std::sync::Arc::new(raw.as_slice()));
         let families = col.register_fonts(blob.clone(), None);
         col.set_generic_families(
             fontique::GenericFamily::Monospace,
