@@ -26,7 +26,7 @@ async fn call_method_and_await(
 }
 
 pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<Blob<u8>>, Error> {
-    let mut font_data = Vec::new();
+    let mut pending: Vec<(Blob<u8>, String)> = Vec::new();
     let window = web_sys::window()
         .ok_or_else(|| Error::NotSupported("no window global on WASM"))?;
 
@@ -53,8 +53,11 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
         let array_buffer = call_method_and_await(&blob_value, "arrayBuffer").await?;
 
         let uint8 = Uint8Array::new(&array_buffer);
-        let data: Vec<u8> = uint8.to_vec();
+        pending.push((uint8.to_vec().into(), family));
+    }
 
+    let mut font_data = Vec::with_capacity(pending.len());
+    for (blob, family) in &pending {
         let info = FontInfoOverride {
             family_name: if family.is_empty() { None } else { Some(family.as_str()) },
             width: None,
@@ -63,9 +66,8 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
             axes: None,
         };
 
-        let blob: Blob<u8> = data.into();
         collection.register_fonts(blob.clone(), Some(info));
-        font_data.push(blob);
+        font_data.push(blob.clone());
     }
 
     Ok(font_data)

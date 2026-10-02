@@ -145,8 +145,8 @@ impl Provider {
         if self.web_fonts_attempted {
             return Ok(());
         }
-        self.web_fonts_attempted = true;
         let data = platform::load_web_fonts(&mut self.collection).await?;
+        self.web_fonts_attempted = true;
         self.font_data.extend(data);
         Ok(())
     }

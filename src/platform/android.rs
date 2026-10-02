@@ -39,6 +39,7 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<Vec<Blob<
     };
 
     let mut font_data = Vec::new();
+    let mut seen_paths = std::collections::HashSet::new();
     let iter = unsafe { open() };
     if iter.is_null() {
         return Err(Error::Android("ASystemFontIterator_open returned null".into()));
@@ -60,7 +61,7 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<Vec<Blob<
                 }
             };
 
-            if !path.is_empty() {
+            if !path.is_empty() && seen_paths.insert(path.to_owned()) {
                 match std::fs::read(path) {
                     Ok(bytes) => {
                         let blob: Blob<u8> = bytes.into();
