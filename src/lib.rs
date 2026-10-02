@@ -65,6 +65,7 @@ pub struct Provider {
     collection: Collection,
     fallback_map: HashMap<Script, Vec<FamilyId>>,
     system_load_attempted: bool,
+    web_fonts_attempted: bool,
     font_data: Vec<Blob<u8>>,
 }
 
@@ -109,6 +110,7 @@ impl Provider {
             collection,
             fallback_map: HashMap::new(),
             system_load_attempted: false,
+            web_fonts_attempted: false,
             font_data: Vec::new(),
         }
     }
@@ -140,10 +142,10 @@ impl Provider {
     /// API is unavailable in the current browser.
     #[cfg(target_arch = "wasm32")]
     pub async fn load_web_fonts(&mut self) -> Result<(), Error> {
-        if self.system_load_attempted {
+        if self.web_fonts_attempted {
             return Ok(());
         }
-        self.system_load_attempted = true;
+        self.web_fonts_attempted = true;
         let data = platform::load_web_fonts(&mut self.collection).await?;
         self.font_data.extend(data);
         Ok(())
