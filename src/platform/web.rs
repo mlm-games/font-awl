@@ -49,8 +49,16 @@ fn local_fonts_permitted() -> bool {
         .unwrap_or(true)
 }
 
+/// `queryLocalFonts()` reports every font installed on the machine, which on a
+/// desktop is far more data than a wasm module's linear memory. Each blob is
+/// copied into that memory, so ingestion is bounded: fonts larger than
+/// [`MAX_FONT_BYTES`] are skipped, and the walk stops once the registered total
+/// reaches [`MAX_TOTAL_BYTES`]. Without those bounds a full font library
+/// exhausts the module and aborts the instance.
+const MAX_FONT_BYTES: usize = 16 * 1024 * 1024;
+const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
+
 pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<Blob<u8>>, Error> {
-    let mut pending: Vec<(Blob<u8>, String)> = Vec::new();
     let window =
         web_sys::window().ok_or_else(|| Error::NotSupported("no window global on WASM"))?;
 
@@ -72,7 +80,17 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
     let fonts_array = call_method_and_await(&window, "queryLocalFonts").await?;
     let fonts = js_sys::Array::from(&fonts_array);
 
+    let mut font_data: Vec<Blob<u8>> = Vec::new();
+    let mut registered_bytes = 0usize;
+    let mut skipped_fonts = 0usize;
+    let mut skipped_bytes = 0usize;
+
     for i in 0..fonts.length() {
+        if registered_bytes >= MAX_TOTAL_BYTES {
+            skipped_fonts += fonts.length() as usize - i as usize;
+            break;
+        }
+
         let font = fonts.get(i);
 
         let family = Reflect::get(&font, &JsValue::from_str("family"))
@@ -85,11 +103,16 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
         let array_buffer = call_method_and_await(&blob_value, "arrayBuffer").await?;
 
         let uint8 = Uint8Array::new(&array_buffer);
-        pending.push((uint8.to_vec().into(), family));
-    }
+        let size = uint8.length() as usize;
+        if size > MAX_FONT_BYTES || registered_bytes + size > MAX_TOTAL_BYTES {
+            skipped_fonts += 1;
+            skipped_bytes += size;
+            continue;
+        }
 
-    let mut font_data = Vec::with_capacity(pending.len());
-    for (blob, family) in &pending {
+        let blob: Blob<u8> = uint8.to_vec().into();
+        registered_bytes += size;
+
         let info = FontInfoOverride {
             family_name: if family.is_empty() {
                 None
@@ -103,8 +126,13 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
         };
 
         collection.register_fonts(blob.clone(), Some(info));
-        font_data.push(blob.clone());
+        font_data.push(blob);
     }
+
+    log::info!(
+        "local-fonts: registered {} fonts ({registered_bytes} bytes), skipped {skipped_fonts} fonts ({skipped_bytes} bytes)",
+        font_data.len()
+    );
 
     Ok(font_data)
 }

@@ -22,6 +22,7 @@ local-fonts = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "de
 
 [dependencies]
 fontique = { version = "0.11", default-features = false, features = ["std"] }
+log = "0.4"
 parley = { version = "0.11", optional = true, default-features = false, features = [
     "std",
 ] }
