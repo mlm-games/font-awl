@@ -6,6 +6,10 @@ license = "MIT OR Apache-2.0"
 description = "Cross-platform font provider for Rust, wrapping fontique + parley"
 repository = "https://github.com/mlm-games/font-awl"
 readme = "README.md"
+# crates.io rejects uploads over 10 MiB and NotoSansCJK-Regular.ttc alone is
+# ~19 MiB. Consumers wanting it should register their
+# own copy via the font-data API.
+exclude = ["fonts/NotoSansCJK-Regular.ttc"]
 
 [features]
 default = ["std", "parley", "system", "fontconfig-dlopen"]
