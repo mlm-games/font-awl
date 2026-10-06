@@ -4,7 +4,7 @@ use crate::Error;
 
 mod bundled;
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", feature = "system"))]
 mod android;
 #[cfg(all(target_arch = "wasm32", feature = "local-fonts"))]
 mod web;
@@ -23,12 +23,12 @@ pub(crate) fn register_default_fonts(col: &mut fontique::Collection) -> Vec<Blob
     bundled::register_defaults(col)
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", feature = "system"))]
 pub(crate) fn load_system_fonts(col: &mut fontique::Collection) -> Result<Vec<Blob<u8>>, Error> {
     android::load_system_fonts(col)
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(all(target_os = "android", feature = "system")))]
 pub(crate) fn load_system_fonts(_col: &mut fontique::Collection) -> Result<Vec<Blob<u8>>, Error> {
     Ok(Vec::new())
 }

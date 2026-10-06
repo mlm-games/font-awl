@@ -14,7 +14,7 @@ exclude = ["fonts/NotoSansCJK-Regular.ttc"]
 [features]
 default = ["std", "parley", "system", "fontconfig-dlopen"]
 std = ["fontique/std", "parley?/std"]
-system = ["std", "fontique/system", "parley?/system"]
+system = ["std", "fontique/system", "parley?/system", "dep:libloading"]
 parley = ["dep:parley"]
 fontconfig-dlopen = ["fontique/fontconfig-dlopen"]
 basic = []
@@ -44,7 +44,7 @@ web-sys = { version = "0.3", optional = true, features = [
 ] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-libloading = "0.9"
+libloading = { version = "0.9", optional = true }
 
 [package.metadata.docs.rs]
 features = ["parley", "basic", "emoji", "system"]

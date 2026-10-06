@@ -57,9 +57,10 @@ pub trait FontProvider {
 ///
 /// # Android
 ///
-/// System fonts are **not** loaded at construction. Call
-/// [`load_system_fonts_best_effort()`] to enumerate via the NDK
-/// `ASystemFontIterator` API (requires API level 29+).
+/// System fonts are **not** loaded at construction. With the `system`
+/// feature, call [`load_system_fonts_best_effort()`] to enumerate via the NDK
+/// `ASystemFontIterator` API (requires API level 29+). Without it,
+/// enumeration is skipped.
 pub struct Provider {
     collection: Collection,
     fallback_map: HashMap<Script, Vec<FamilyId>>,
