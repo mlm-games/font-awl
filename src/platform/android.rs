@@ -18,8 +18,9 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<Vec<Blob<
     };
 
     let open: Symbol<OpenFn> = unsafe {
-        lib.get(b"ASystemFontIterator_open")
-            .map_err(|_| Error::NotSupported("ASystemFontIterator_open not available (pre-API 29?)"))?
+        lib.get(b"ASystemFontIterator_open").map_err(|_| {
+            Error::NotSupported("ASystemFontIterator_open not available (pre-API 29?)")
+        })?
     };
     let next: Symbol<NextFn> = unsafe {
         lib.get(b"ASystemFontIterator_next")
@@ -42,7 +43,9 @@ pub(crate) fn load_system_fonts(collection: &mut Collection) -> Result<Vec<Blob<
     let mut seen_paths = std::collections::HashSet::new();
     let iter = unsafe { open() };
     if iter.is_null() {
-        return Err(Error::Android("ASystemFontIterator_open returned null".into()));
+        return Err(Error::Android(
+            "ASystemFontIterator_open returned null".into(),
+        ));
     }
 
     loop {
