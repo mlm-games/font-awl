@@ -12,7 +12,7 @@ readme = "README.md"
 exclude = ["fonts/NotoSansCJK-Regular.ttc"]
 
 [features]
-default = ["std", "parley", "system", "fontconfig-dlopen"]
+default = ["std", "parley", "fontconfig-dlopen"]
 std = ["fontique/std", "parley?/std"]
 system = ["std", "fontique/system", "parley?/system", "dep:libloading"]
 parley = ["dep:parley"]
