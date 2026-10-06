@@ -40,6 +40,9 @@ jobs:
       - name: Test
         run: cargo test --verbose --locked
 
+      - name: Test (bundled fonts)
+        run: cargo test --verbose --locked --features basic,emoji,system
+
   check-wasm:
     runs-on: ubuntu-latest
     steps:

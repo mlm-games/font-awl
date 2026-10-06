@@ -206,6 +206,10 @@ mod tests {
         assert!(!provider.system_load_attempted);
     }
 
+    #[cfg(all(
+        not(any(target_arch = "wasm32", target_os = "android")),
+        feature = "system"
+    ))]
     #[test]
     fn system_fonts_resolve_generic_families() {
         let mut provider = Provider::new();
@@ -213,8 +217,22 @@ mod tests {
             .collection_mut()
             .generic_families(fontique::GenericFamily::SansSerif)
             .collect();
-        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
         assert!(!ids.is_empty(), "expected system fonts on desktop");
+    }
+
+    #[cfg(all(
+        not(any(target_arch = "wasm32", target_os = "android")),
+        not(feature = "system")
+    ))]
+    #[test]
+    fn system_fonts_absent_without_system_feature() {
+        let mut provider = Provider::new();
+        assert!(!platform::system_fonts_at_init());
+        let ids: Vec<_> = provider
+            .collection_mut()
+            .generic_families(fontique::GenericFamily::SansSerif)
+            .collect();
+        assert!(ids.is_empty(), "no fonts expected without `system`");
     }
 
     #[test]
@@ -242,77 +260,71 @@ mod tests {
         provider.load_app_fonts(&[], None);
     }
 
-    #[cfg(feature = "parley")]
+    #[cfg(all(
+        feature = "parley",
+        not(any(target_arch = "wasm32", target_os = "android")),
+        any(feature = "system", feature = "basic", feature = "cjk")
+    ))]
     #[test]
     fn golden_parley_layout_produces_glyphs() {
-        let provider = Provider::new();
+        let mut provider = Provider::new();
+        provider.load_bundled_fonts();
 
-        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
-        {
-            let mut font_cx = provider.new_parley_context();
-            let mut layout_cx = parley::LayoutContext::<[u8; 4]>::new();
-            let mut builder = layout_cx.ranged_builder(&mut font_cx, "Hello", 16.0, true);
-            builder.push_default(parley::style::StyleProperty::FontSize(16.0));
-            let mut layout = builder.build("Hello");
-            layout.break_all_lines(None);
+        let mut font_cx = provider.new_parley_context();
+        let mut layout_cx = parley::LayoutContext::<[u8; 4]>::new();
+        let mut builder = layout_cx.ranged_builder(&mut font_cx, "Hello", 16.0, true);
+        builder.push_default(parley::style::StyleProperty::FontSize(16.0));
+        let mut layout = builder.build("Hello");
+        layout.break_all_lines(None);
 
-            let mut glyph_count = 0;
-            for line in layout.lines() {
-                for run in line.runs() {
-                    for cluster in run.clusters() {
-                        for _glyph in cluster.glyphs() {
-                            glyph_count += 1;
-                        }
+        let mut glyph_count = 0;
+        for line in layout.lines() {
+            for run in line.runs() {
+                for cluster in run.clusters() {
+                    for _glyph in cluster.glyphs() {
+                        glyph_count += 1;
                     }
                 }
             }
-            assert!(glyph_count > 0, "expected glyphs from layout");
         }
-
-        #[cfg(any(target_arch = "wasm32", target_os = "android"))]
-        {
-            let _ = provider;
-        }
+        assert!(glyph_count > 0, "expected glyphs from layout");
     }
 
-    #[cfg(feature = "parley")]
+    #[cfg(all(
+        feature = "parley",
+        not(any(target_arch = "wasm32", target_os = "android")),
+        any(feature = "system", feature = "basic", feature = "cjk")
+    ))]
     #[test]
     fn golden_parley_non_notdef_glyphs() {
-        let provider = Provider::new();
+        let mut provider = Provider::new();
+        provider.load_bundled_fonts();
 
-        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
-        {
-            let mut font_cx = provider.new_parley_context();
-            let mut layout_cx = parley::LayoutContext::<[u8; 4]>::new();
-            let mut builder = layout_cx.ranged_builder(&mut font_cx, "A", 16.0, true);
-            builder.push_default(parley::style::StyleProperty::FontSize(16.0));
-            let mut layout = builder.build("A");
-            layout.break_all_lines(None);
+        let mut font_cx = provider.new_parley_context();
+        let mut layout_cx = parley::LayoutContext::<[u8; 4]>::new();
+        let mut builder = layout_cx.ranged_builder(&mut font_cx, "A", 16.0, true);
+        builder.push_default(parley::style::StyleProperty::FontSize(16.0));
+        let mut layout = builder.build("A");
+        layout.break_all_lines(None);
 
-            let mut seen_notdef = false;
-            let mut seen_valid = false;
-            for line in layout.lines() {
-                for run in line.runs() {
-                    for cluster in run.clusters() {
-                        for glyph in cluster.glyphs() {
-                            if glyph.id == 0 {
-                                seen_notdef = true;
-                            } else {
-                                seen_valid = true;
-                            }
+        let mut seen_notdef = false;
+        let mut seen_valid = false;
+        for line in layout.lines() {
+            for run in line.runs() {
+                for cluster in run.clusters() {
+                    for glyph in cluster.glyphs() {
+                        if glyph.id == 0 {
+                            seen_notdef = true;
+                        } else {
+                            seen_valid = true;
                         }
                     }
                 }
             }
-            assert!(
-                seen_valid,
-                "expected at least one non-.notdef glyph; notdef only: {seen_notdef}"
-            );
         }
-
-        #[cfg(any(target_arch = "wasm32", target_os = "android"))]
-        {
-            let _ = provider;
-        }
+        assert!(
+            seen_valid,
+            "expected at least one non-.notdef glyph; notdef only: {seen_notdef}"
+        );
     }
 }
