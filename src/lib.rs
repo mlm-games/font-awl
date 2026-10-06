@@ -6,9 +6,7 @@ pub use fontique;
 
 use std::collections::HashMap;
 
-use fontique::{
-    Blob, Collection, CollectionOptions, FamilyId, FontInfoOverride, Script,
-};
+use fontique::{Blob, Collection, CollectionOptions, FamilyId, FontInfoOverride, Script};
 
 #[cfg(feature = "parley")]
 pub use parley;
@@ -52,9 +50,10 @@ pub trait FontProvider {
 ///
 /// # WASM
 ///
-/// System fonts are **not** loaded at construction. Call [`load_web_fonts()`]
-/// after construction to query the browser's Local Font Access API.
-/// Bundled fonts (via [`load_bundled_fonts()`]) provide fallback.
+/// System fonts are **not** loaded at construction. With the `local-fonts`
+/// feature, call [`load_web_fonts()`] after construction to query the browser's
+/// Local Font Access API. Bundled fonts (via [`load_bundled_fonts()`]) provide
+/// fallback.
 ///
 /// # Android
 ///
@@ -65,6 +64,7 @@ pub struct Provider {
     collection: Collection,
     fallback_map: HashMap<Script, Vec<FamilyId>>,
     system_load_attempted: bool,
+    #[cfg(all(target_arch = "wasm32", feature = "local-fonts"))]
     web_fonts_attempted: bool,
     font_data: Vec<Blob<u8>>,
 }
@@ -110,6 +110,7 @@ impl Provider {
             collection,
             fallback_map: HashMap::new(),
             system_load_attempted: false,
+            #[cfg(all(target_arch = "wasm32", feature = "local-fonts"))]
             web_fonts_attempted: false,
             font_data: Vec::new(),
         }
@@ -137,10 +138,11 @@ impl Provider {
 
     /// WASM: load system fonts via browser Local Font Access API.
     ///
-    /// Requires a secure context (HTTPS) and a user activation gesture.
-    /// Falls back to bundled fonts via [`load_bundled_fonts()`] if the
-    /// API is unavailable in the current browser.
-    #[cfg(target_arch = "wasm32")]
+    /// Requires a secure context (HTTPS), the `local-fonts` feature, and a
+    /// user activation gesture. Returns [`Error::NotSupported`] without calling
+    /// `queryLocalFonts()` when the document's Permissions Policy does not grant
+    /// `local-fonts`, or when the browser has no Local Font Access API.
+    #[cfg(all(target_arch = "wasm32", feature = "local-fonts"))]
     pub async fn load_web_fonts(&mut self) -> Result<(), Error> {
         if self.web_fonts_attempted {
             return Ok(());

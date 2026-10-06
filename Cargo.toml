@@ -1,6 +1,6 @@
 [package]
 name = "font-awl"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Cross-platform font provider for Rust, wrapping fontique + parley"
@@ -18,6 +18,7 @@ emoji = []
 cjk = []
 monospace = []
 all-noto = ["basic", "emoji", "cjk"]
+local-fonts = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys"]
 
 [dependencies]
 fontique = { version = "0.11", default-features = false, features = ["std"] }
@@ -27,10 +28,15 @@ parley = { version = "0.11", optional = true, default-features = false, features
 thiserror = "2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-js-sys = "0.3"
-web-sys = { version = "0.3", features = ["Window", "FontData", "Blob"] }
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
+    "Document",
+    "Window",
+    "FontData",
+    "Blob",
+] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 libloading = "0.9"

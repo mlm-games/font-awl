@@ -10,7 +10,7 @@ License: MIT OR Apache-2.0
 
 - Owns a fontique `Collection` and optional per-script fallback chains
 - Loads system fonts on desktop at construction (when the `system` feature is on)
-- Defers system loading on Android (NDK `ASystemFontIterator`, API 29+) and WASM (Local Font Access)
+- Defers system loading on Android (NDK `ASystemFontIterator`, API 29+); WASM local fonts are opt-in (`local-fonts`)
 - Registers optional bundled fonts controlled by Cargo features
 - Registers arbitrary app fonts from bytes (TTF/OTF/TTC/OTC) with optional `FontInfoOverride`
 - Builds a parley `FontContext` from the collection when the `parley` feature is enabled
@@ -29,6 +29,7 @@ License: MIT OR Apache-2.0
 | `cjk` | no | Bundle Noto Sans CJK (if file present) |
 | `monospace` | no | Bundle JetBrains Mono |
 | `all-noto` | no | `basic` + `emoji` + `cjk` |
+| `local-fonts` | no | WASM: compile `Provider::load_web_fonts()` (browser Local Font Access) |
 
 Bundled files live under `fonts/`. `build.rs` sets cfg flags only when the file exists; enabling a feature without the file emits a cargo warning.
 
@@ -40,7 +41,7 @@ Present in-tree by default (when checked in): OpenSans, Noto Sans Symbols 2, Not
 |----------|----------------|
 | Linux / macOS / Windows | Loaded in `Provider::new()` if `system` is enabled |
 | Android | Call `load_system_fonts_best_effort()` (libandroid `ASystemFontIterator`, best-effort read of font paths) |
-| WASM | Call `load_web_fonts().await` (`queryLocalFonts`; needs secure context + user gesture). Falls back to bundled/app fonts if unavailable |
+| WASM | Call `load_web_fonts().await` with the `local-fonts` feature (`queryLocalFonts`; needs secure context + user gesture + a document Permissions Policy that grants `local-fonts`). Falls back to bundled/app fonts if unavailable |
 
 `load_system_fonts_best_effort` is idempotent (skips if already attempted). Failures for individual fonts are skipped where possible.
 
@@ -61,7 +62,7 @@ provider.load_app_fonts(&ttf_bytes, None);
 let _ = provider.load_system_fonts_best_effort();
 
 // WASM
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "local-fonts"))]
 provider.load_web_fonts().await?;
 
 // Script fallbacks

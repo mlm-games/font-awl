@@ -5,10 +5,7 @@ use wasm_bindgen_futures::JsFuture;
 
 use crate::Error;
 
-async fn call_method_and_await(
-    obj: &JsValue,
-    method_name: &str,
-) -> Result<JsValue, Error> {
+async fn call_method_and_await(obj: &JsValue, method_name: &str) -> Result<JsValue, Error> {
     let method = Reflect::get(obj, &JsValue::from_str(method_name))
         .map_err(|_| Error::Web(format!("{method_name} not available")))?;
     let promise = method
@@ -25,16 +22,51 @@ async fn call_method_and_await(
     .map_err(|e| Error::Web(format!("{method_name}() rejected: {e:?}")))
 }
 
+/// Whether the document's Permissions Policy grants `local-fonts`.
+///
+/// Embedders that do not pass `allow="local-fonts"` (any cross-origin frame)
+/// make the browser log a Permissions Policy violation the moment
+/// `queryLocalFonts` is touched, so the capability is checked before the call.
+/// Browsers without `document.permissionsPolicy` report `true` and let the
+/// call itself decide.
+fn local_fonts_permitted() -> bool {
+    let Some(document) = web_sys::window().and_then(|window| window.document()) else {
+        return false;
+    };
+    let Ok(policy) = Reflect::get(&document, &JsValue::from_str("permissionsPolicy")) else {
+        return true;
+    };
+    let Ok(allows_feature) = Reflect::get(&policy, &JsValue::from_str("allowsFeature")) else {
+        return true;
+    };
+    let Ok(function) = allows_feature.dyn_into::<Function>() else {
+        return true;
+    };
+    function
+        .call1(&policy, &JsValue::from_str("local-fonts"))
+        .ok()
+        .and_then(|allowed| allowed.as_bool())
+        .unwrap_or(true)
+}
+
 pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<Blob<u8>>, Error> {
     let mut pending: Vec<(Blob<u8>, String)> = Vec::new();
-    let window = web_sys::window()
-        .ok_or_else(|| Error::NotSupported("no window global on WASM"))?;
+    let window =
+        web_sys::window().ok_or_else(|| Error::NotSupported("no window global on WASM"))?;
+
+    if !local_fonts_permitted() {
+        return Err(Error::NotSupported(
+            "local-fonts not granted by Permissions Policy",
+        ));
+    }
 
     let query_fn = Reflect::get(&window, &JsValue::from_str("queryLocalFonts"))
         .map_err(|_| Error::Web("queryLocalFonts not supported in this browser".into()))?;
 
     if query_fn.is_undefined() || query_fn.is_null() {
-        return Err(Error::Web("queryLocalFonts not supported in this browser".into()));
+        return Err(Error::Web(
+            "queryLocalFonts not supported in this browser".into(),
+        ));
     }
 
     let fonts_array = call_method_and_await(&window, "queryLocalFonts").await?;
@@ -59,7 +91,11 @@ pub(crate) async fn load_local_fonts(collection: &mut Collection) -> Result<Vec<
     let mut font_data = Vec::with_capacity(pending.len());
     for (blob, family) in &pending {
         let info = FontInfoOverride {
-            family_name: if family.is_empty() { None } else { Some(family.as_str()) },
+            family_name: if family.is_empty() {
+                None
+            } else {
+                Some(family.as_str())
+            },
             width: None,
             style: None,
             weight: None,
