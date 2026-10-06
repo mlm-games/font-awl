@@ -1,6 +1,6 @@
 # font-awl
 
-Cross-platform font provider for Rust, built on [fontique](https://github.com/linebender/fontique) with optional [parley](https://github.com/linebender/parley) integration.
+Cross-platform font provider for Rust, built on [parley](https://github.com/linebender/parley).
 
 Used for font loading in [repose](https://github.com/mlm-games/repose) and apps using it: system fonts where available, optional bundled fallbacks, app-supplied font bytes, and a small `FontProvider` trait.
 
